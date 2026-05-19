@@ -1,327 +1,399 @@
-// Aleria - Fantasy Story Generator
-// Pure vanilla JS, no build step. Operates on the DATA object from data.js.
+// Aleria World Generator — Application Logic
+// Pure vanilla JS. No dependencies. Operates on DATA from data.js.
 
 (function () {
   "use strict";
 
-  // ----------------------------------------------------------- helpers
-  function pick(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
+  // --- Utilities ---
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   function pickN(arr, n) {
     const copy = arr.slice();
     const out = [];
     while (out.length < n && copy.length) {
-      const i = Math.floor(Math.random() * copy.length);
-      out.push(copy.splice(i, 1)[0]);
+      out.push(copy.splice(Math.floor(Math.random() * copy.length), 1)[0]);
     }
     return out;
   }
-  function escape(text) {
-    return String(text)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;");
-  }
-  function el(html) {
-    const d = document.createElement("div");
-    d.innerHTML = html;
-    return d;
-  }
-  function findChar(id) {
-    return DATA.characters.find((c) => c.id === id);
+  function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
+  function render(container, html) {
+    container.innerHTML = html;
+    container.classList.add("has-content");
   }
 
-  // ----------------------------------------------------------- tabs
-  const tabs = document.querySelectorAll(".tab");
-  const panels = document.querySelectorAll(".panel");
+  // --- Navigation ---
+  const navBtns = document.querySelectorAll(".nav-btn");
+  const sections = document.querySelectorAll(".section");
 
-  function activate(name) {
-    tabs.forEach((t) => {
-      const on = t.dataset.tab === name;
-      t.setAttribute("aria-selected", on ? "true" : "false");
+  function switchSection(name) {
+    navBtns.forEach(b => {
+      const active = b.dataset.section === name;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", active ? "true" : "false");
     });
-    panels.forEach((p) => {
-      p.hidden = p.dataset.panel !== name;
+    sections.forEach(s => {
+      s.classList.toggle("active", s.id === "sec-" + name);
     });
   }
 
-  tabs.forEach((t) =>
-    t.addEventListener("click", () => activate(t.dataset.tab))
-  );
+  navBtns.forEach(b => b.addEventListener("click", () => switchSection(b.dataset.section)));
 
-  // Initial active panel
-  activate("story");
 
-  // ----------------------------------------------------------- populate selects
-  const selects = {
-    storyLead: document.getElementById("story-lead"),
-    storyAlly: document.getElementById("story-ally"),
-    char: document.getElementById("char-select"),
-    skillGrade: document.getElementById("skill-grade"),
-    spellType: document.getElementById("spell-type"),
-    race: document.getElementById("race-select"),
-    location: document.getElementById("location-select"),
-  };
-
-  function addOptions(select, items, valueFn, labelFn) {
-    items.forEach((item) => {
+  // --- Populate Selects ---
+  function addOptions(select, items, valFn, lblFn) {
+    items.forEach(item => {
       const opt = document.createElement("option");
-      opt.value = valueFn(item);
-      opt.textContent = labelFn(item);
+      opt.value = valFn(item);
+      opt.textContent = lblFn(item);
       select.appendChild(opt);
     });
   }
 
-  addOptions(selects.storyLead, DATA.characters, (c) => c.id, (c) => c.name);
-  addOptions(selects.storyAlly, DATA.characters, (c) => c.id, (c) => c.name);
-  addOptions(selects.char, DATA.characters, (c) => c.id, (c) => c.name);
-  addOptions(selects.skillGrade, DATA.skillGrades, (g) => g, (g) => g);
-  addOptions(selects.spellType, DATA.spellTypes, (t) => t.label, (t) => t.label);
-  addOptions(selects.race, DATA.races, (r) => r.name, (r) => r.name);
-  addOptions(selects.location, DATA.locations, (l) => l.name, (l) => l.name);
+  const selCharRace = document.getElementById("char-race");
+  const selCharOcc = document.getElementById("char-occupation");
+  const selMagicType = document.getElementById("magic-type");
+  const selMagicGrade = document.getElementById("magic-grade");
+  const selMonsterStar = document.getElementById("monster-star");
+  const selWorldType = document.getElementById("world-type");
 
-  // ----------------------------------------------------------- STORY
-  function generateStory() {
-    const tpl = pick(DATA.storyTemplates);
+  addOptions(selCharRace, DATA.races, r => r.name, r => r.name);
+  addOptions(selCharOcc, DATA.occupations, o => o.name, o => o.name);
+  addOptions(selMagicGrade, DATA.skillGrades, g => g, g => g);
 
-    // Resolve characters
-    const leadId = selects.storyLead.value;
-    const allyId = selects.storyAlly.value;
-    let lead = leadId ? findChar(leadId) : pick(DATA.characters);
-    let ally = allyId ? findChar(allyId) : null;
-
-    if (!ally) {
-      const candidates = DATA.characters.filter((c) => c.id !== lead.id);
-      ally = pick(candidates);
-    } else if (ally.id === lead.id) {
-      // resolve clash
-      const candidates = DATA.characters.filter((c) => c.id !== lead.id);
-      ally = pick(candidates);
+  // --- Helper: star rating HTML ---
+  function starsHTML(count, max) {
+    let html = '<span class="star-rating">';
+    for (let i = 0; i < max; i++) {
+      html += `<span class="star${i < count ? "" : " empty"}">&#9733;</span>`;
     }
+    html += "</span>";
+    return html;
+  }
 
-    const antagonistPool = DATA.characters.filter((c) =>
-      c.tags && c.tags.includes("Crimson Sun Order")
-    );
-    const antagonist = pick(antagonistPool);
+  // --- Helper: tags HTML ---
+  function tagsHTML(tags, cls) {
+    return '<div class="tag-row">' +
+      tags.map(t => `<span class="tag ${cls || ""}">${esc(t)}</span>`).join("") +
+      '</div>';
+  }
 
-    const slotValues = {
-      char: lead.name,
-      ally: ally.name,
-      antagonist: antagonist.name,
-      location: pick(DATA.locations).name,
-      monster: pick(DATA.monsters).name,
-      complication: pick(DATA.storyComplications),
-    };
 
-    let body = tpl.template;
-    Object.keys(slotValues).forEach((key) => {
-      body = body.replaceAll("{" + key + "}", slotValues[key]);
-    });
+  // ============================
+  // CHARACTER GENERATOR
+  // ============================
+  document.getElementById("btn-character").addEventListener("click", () => {
+    const raceVal = selCharRace.value;
+    const occVal = selCharOcc.value;
 
-    // Capitalise first letter after sentence-final period if a complication
-    // started a sentence with a lowercase word.
-    body = body.replace(/(\.\s+)([a-z])/g, (_, pre, ch) => pre + ch.toUpperCase());
+    const race = raceVal ? DATA.races.find(r => r.name === raceVal) : pick(DATA.races);
+    const occ = occVal ? DATA.occupations.find(o => o.name === occVal) : pick(DATA.occupations);
+    const bg = pick(DATA.backgrounds);
+    const motivation = pick(DATA.motivations);
+    const personality = pick(DATA.personalityTraits);
 
     const html = `
-      <p class="story-title">${escape(tpl.title)}</p>
-      <div class="story-body"><p>${escape(body)}</p></div>
-      <hr class="divider" />
-      <div class="tag-row">
-        <span class="tag">Lead: ${escape(lead.name)}</span>
-        <span class="tag">With: ${escape(ally.name)}</span>
+      <div class="result-card">
+        <span class="card-label">Character</span>
+        <h3>${esc(race.name)} ${esc(occ.name)}</h3>
+        <p class="card-subtitle">${esc(occ.desc)}</p>
+        <div class="card-body">
+          <p><strong>Background:</strong> ${esc(cap(bg))}.</p>
+          <p><strong>Personality:</strong> ${esc(cap(personality))}.</p>
+          <p><strong>Motivation:</strong> ${esc(cap(motivation))}.</p>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Race Details</p>
+          <div class="card-body">
+            <p><strong>Origin:</strong> ${esc(race.origin)}</p>
+            <p><strong>Core type:</strong> ${esc(race.coreType)}</p>
+            <p><strong>Lifespan:</strong> ${esc(race.lifespan)}</p>
+            <p><strong>Magic:</strong> ${esc(race.magicStyle)}</p>
+          </div>
+          ${tagsHTML(race.traits)}
+        </div>
       </div>
     `;
-    document.getElementById("story-result").innerHTML = html;
-  }
-  document.getElementById("story-generate").addEventListener("click", generateStory);
+    render(document.getElementById("result-character"), html);
+  });
 
-  // ----------------------------------------------------------- CHARACTER
-  function renderCharacter(c) {
-    const tags = (c.tags || [])
-      .map((t) => `<span class="tag">${escape(t)}</span>`)
-      .join("");
-    const details = c.details.map((d) => `<li>${escape(d)}</li>`).join("");
-    const voice = (c.voice || []).map((v) => `<li>${escape(v)}</li>`).join("");
+
+  // ============================
+  // MAGIC SYSTEM GENERATOR
+  // ============================
+  function generateSpell() {
+    const type = pick(DATA.spellTypes);
+    const suffix = pick(DATA.spellSuffixes);
+    const effect = pick(type.effects);
 
     return `
-      <h3>${escape(c.name)}</h3>
-      <p class="role">${escape(c.role)} - ${escape(c.race)}</p>
-      <div class="tag-row">${tags}</div>
-      <p>${escape(c.summary)}</p>
-      <h4>Details</h4>
-      <ul>${details}</ul>
-      <h4>Voice</h4>
-      <ul>${voice}</ul>
+      <div class="result-card">
+        <span class="card-label">Spell — ${esc(type.label)}</span>
+        <h3>"${esc(suffix)}"</h3>
+        <p class="card-subtitle">Tro-Ko compressed spell</p>
+        <div class="card-section">
+          <p class="card-section-title">Full Incantation</p>
+          <div class="incantation">Trovak enshari korim thalos ${esc(suffix)}!</div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Compressed Form</p>
+          <div class="incantation">Tro-Ko ${esc(suffix)}!</div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Effect</p>
+          <div class="card-body"><p>${esc(cap(effect))}.</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Note</p>
+          <div class="card-body"><p>Compressed casting demands precise mana control. Higher speed and output, but causes mental strain and risks mana exhaustion. Most casters train for years before using the Tro-Ko form reliably.</p></div>
+        </div>
+        ${tagsHTML([type.label, "mana-constructed", "requires understanding"], "accent")}
+      </div>
     `;
   }
 
-  document.getElementById("char-generate").addEventListener("click", () => {
-    const id = selects.char.value;
-    const c = id ? findChar(id) : pick(DATA.characters);
-    document.getElementById("char-result").innerHTML = renderCharacter(c);
-  });
-
-  // ----------------------------------------------------------- SKILL
   function generateSkill() {
-    const grade =
-      selects.skillGrade.value || pick(DATA.skillGrades);
-    const baseName = pick(DATA.skillNames);
+    const grade = selMagicGrade.value || pick(DATA.skillGrades);
+    const name = pick(DATA.skillNames);
     const effect = pick(DATA.skillEffects);
     const unlock = pick(DATA.skillUnlockHints);
     const cost = pick(DATA.skillCosts);
 
     let nullNote = "";
     if (grade === "Null") {
-      nullNote = `
-        <p><em>Null-grade Skills defy measurement. Outcomes vary regardless of intent or
-        experience.</em></p>
-      `;
+      nullNote = `<p><em>Null-grade Skills defy measurement. Outcomes vary regardless of intent or experience.</em></p>`;
     }
 
-    document.getElementById("skill-result").innerHTML = `
-      <h3>[${escape(baseName)}]</h3>
-      <p class="role">Skill - Grade: ${escape(grade)}</p>
-      <p>${escape(capitalise(effect))}.</p>
-      <h4>Unlock condition</h4>
-      <p>${escape(capitalise(unlock))}.</p>
-      <h4>Cost</h4>
-      <p>${escape(cost)}</p>
-      ${nullNote}
-      <hr class="divider" />
-      <div class="tag-row">
-        <span class="tag">activated or passive, never cast</span>
-        <span class="tag">cannot be taught</span>
+    return `
+      <div class="result-card">
+        <span class="card-label">Skill — Grade: ${esc(grade)}</span>
+        <h3>[${esc(name)}]</h3>
+        <p class="card-subtitle">Innate ability — cannot be taught through study</p>
+        <div class="card-body">
+          <p>${esc(cap(effect))}.</p>
+          ${nullNote}
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Unlock Condition</p>
+          <div class="card-body"><p>${esc(cap(unlock))}.</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Cost</p>
+          <div class="card-body"><p>${esc(cost)}</p></div>
+        </div>
+        ${tagsHTML(["activated or passive", "never cast", "cannot be taught"], "gold")}
       </div>
     `;
   }
-  document.getElementById("skill-generate").addEventListener("click", generateSkill);
 
-  // ----------------------------------------------------------- SPELL
-  function generateSpell() {
-    const typeLabel = selects.spellType.value;
-    const type = typeLabel
-      ? DATA.spellTypes.find((t) => t.label === typeLabel)
-      : pick(DATA.spellTypes);
-    const suffix = pick(DATA.spellSuffixes);
-    const effect = pick(type.effects);
+  function generateTechnique() {
+    const origin = pick(DATA.techniqueOrigins);
 
-    document.getElementById("spell-result").innerHTML = `
-      <h3>${escape(type.label)} - "${escape(suffix)}"</h3>
-      <p class="role">Spell</p>
-      <h4>Full incantation</h4>
-      <div class="incantation">Trovak enshari korim thalos ${escape(suffix)}!</div>
-      <h4>Compressed (Tro-Ko)</h4>
-      <div class="incantation">Tro-Ko ${escape(suffix)}!</div>
-      <h4>Effect</h4>
-      <p>${escape(capitalise(effect))}.</p>
-      <hr class="divider" />
-      <p>
-        Compressed casting demands precise mana control and risks mana exhaustion. Standard among
-        skilled casters such as Seraya, Ren-Ro, and Grand Priest Kuger. Apprentices stay on the
-        full incantation.
-      </p>
+    return `
+      <div class="result-card">
+        <span class="card-label">Technique</span>
+        <h3>A Breakthrough</h3>
+        <p class="card-subtitle">Not magic. Not a Skill. The result of pushing past natural limits.</p>
+        <div class="card-body">
+          <p><strong>Origin:</strong> ${esc(cap(origin))}.</p>
+          <p>Techniques cannot be directly taught. The knowledge or principles behind them can be shared, but the breakthrough must be reached individually. This often involves instinctive mana reinforcement of the body, even in individuals who cannot consciously cast spells.</p>
+          <p>Each Technique represents a moment where a person surpassed their normal constraints and stabilised that state into something repeatable.</p>
+        </div>
+        ${tagsHTML(["individual breakthrough", "body transcendence", "not classified as Skill or Spell"], "crimson")}
+      </div>
     `;
   }
-  document.getElementById("spell-generate").addEventListener("click", generateSpell);
 
-  // ----------------------------------------------------------- MONSTER
-  function generateMonster() {
-    const star = document.getElementById("monster-star").value;
+  function generatePact() {
+    const pact = pick(DATA.pactTypes);
+
+    return `
+      <div class="result-card">
+        <span class="card-label">Pact Binding</span>
+        <h3>${esc(pact.name)}</h3>
+        <p class="card-subtitle">Mutual mana-binding between beings or objects</p>
+        <div class="card-body">
+          <p>${esc(pact.desc)}</p>
+          <p>Pacts enforce themselves through cores. Once formed, agreed conditions shape mana flow between parties. Stable while upheld; disrupted when broken — like blood circulation suddenly slowing, stopping, or reversing.</p>
+        </div>
+        ${tagsHTML(["mana-binding", "core-enforced", "consent required for clean formation"], "teal")}
+      </div>
+    `;
+  }
+
+  document.getElementById("btn-magic").addEventListener("click", () => {
+    const type = selMagicType.value;
+    let html;
+    if (type === "spell") html = generateSpell();
+    else if (type === "skill") html = generateSkill();
+    else if (type === "technique") html = generateTechnique();
+    else if (type === "pact") html = generatePact();
+    else html = pick([generateSpell, generateSkill, generateTechnique, generatePact])();
+    render(document.getElementById("result-magic"), html);
+  });
+
+
+  // ============================
+  // MONSTER ENCOUNTER
+  // ============================
+  document.getElementById("btn-monster").addEventListener("click", () => {
+    const starVal = selMonsterStar.value;
     let pool = DATA.monsters;
-    if (star) {
-      pool = DATA.monsters.filter((m) => m.star === Number(star));
-      if (!pool.length) pool = DATA.monsters;
+    if (starVal) {
+      const filtered = pool.filter(m => m.star === Number(starVal));
+      if (filtered.length) pool = filtered;
     }
     const m = pick(pool);
-    const place = pick(DATA.locations);
-    const complication = pick(DATA.storyComplications);
+    const location = pick(DATA.locations);
 
     const reportedBy = pick([
-      "a passing Hunter, who is now overdue",
+      "a passing Hunter who is now overdue",
       "a frantic Adventurer Guild scout",
-      "a Church Knight returning from rotation",
-      "a tenebrim caravan that did not stop to file paperwork",
-      "a local Equar who wants paying first",
+      "a Church Knight pulled from regular rotation",
+      "a tenebrim caravan that didn't stop to file paperwork",
+      "a local Equar who wants paying before talking",
       "a Crimson Sun Order observer with very specific notes",
+      "a mana regulator whose shift patterns have been disrupted",
+      "a dungeon harvester who barely made it back",
     ]);
 
-    document.getElementById("monster-result").innerHTML = `
-      <h3>${escape(m.name)}</h3>
-      <p class="role">Star-${m.star} threat</p>
-      <p>${escape(m.summary)}</p>
-      <h4>Encounter</h4>
-      <p>Sighted near ${escape(place.name)}. Reported by ${escape(reportedBy)}.</p>
-      <h4>Complication</h4>
-      <p>${escape(capitalise(complication))}.</p>
+    const html = `
+      <div class="result-card">
+        <span class="card-label">Monster — Star-${m.star} ${starsHTML(m.star, 5)}</span>
+        <h3>${esc(m.name)}</h3>
+        <p class="card-subtitle">${esc(m.habitat)}</p>
+        <div class="card-body">
+          <p>${esc(m.summary)}</p>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Encounter Context</p>
+          <div class="card-body">
+            <p><strong>Sighted near:</strong> ${esc(location.name)} (${esc(location.kind)})</p>
+            <p><strong>Reported by:</strong> ${esc(reportedBy)}.</p>
+          </div>
+        </div>
+        ${tagsHTML(["Star-" + m.star, m.habitat.split(",")[0].trim()], "crimson")}
+      </div>
     `;
-  }
-  document.getElementById("monster-generate").addEventListener("click", generateMonster);
+    render(document.getElementById("result-monster"), html);
+  });
 
-  // ----------------------------------------------------------- RELIC
-  function generateRelic() {
+  // ============================
+  // RELIC GENERATOR
+  // ============================
+  document.getElementById("btn-relic").addEventListener("click", () => {
     const form = pick(DATA.relicForms);
     const material = pick(DATA.relicMaterials);
     const effect = pick(DATA.relicEffects);
     const limit = pick(DATA.relicLimits);
-    const dungeonOrigin = pick([
-      "pulled from the second curl of a deep-Lintur dungeon",
-      "found in a Menfor battlefield grave that should have been emptied centuries ago",
-      "logged out of an Underworld vault and never logged back in",
-      "recovered from a Northern Expanse glacier dungeon",
-      "left in a sealed Ancient ruin near the capital, behind a door that opened to no key",
-    ]);
+    const origin = pick(DATA.relicOrigins);
 
-    document.getElementById("relic-result").innerHTML = `
-      <h3>A ${escape(material)} ${escape(form)}</h3>
-      <p class="role">Relic - Lost Magic</p>
-      <h4>Effect</h4>
-      <p>It ${escape(effect)}.</p>
-      <h4>Limit</h4>
-      <p>${escape(limit)}</p>
-      <h4>Provenance</h4>
-      <p>${escape(capitalise(dungeonOrigin))}.</p>
-      <hr class="divider" />
-      <div class="tag-row">
-        <span class="tag gold">forged with magic that can no longer be reproduced</span>
+    const html = `
+      <div class="result-card">
+        <span class="card-label">Relic — Lost Magic</span>
+        <h3>A ${esc(material)} ${esc(form)}</h3>
+        <p class="card-subtitle">Imbued with magic that can no longer be reproduced</p>
+        <div class="card-section">
+          <p class="card-section-title">Effect</p>
+          <div class="card-body"><p>It ${esc(effect)}.</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Limitation</p>
+          <div class="card-body"><p>${esc(limit)}</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Provenance</p>
+          <div class="card-body"><p>${esc(cap(origin))}.</p></div>
+        </div>
+        ${tagsHTML(["Ancient-forged", "Lost Magic", form], "gold")}
       </div>
     `;
-  }
-  document.getElementById("relic-generate").addEventListener("click", generateRelic);
+    render(document.getElementById("result-relic"), html);
+  });
 
-  // ----------------------------------------------------------- RACE
-  function showRace() {
-    const name = selects.race.value;
-    const r = name ? DATA.races.find((x) => x.name === name) : pick(DATA.races);
-    const tags = (r.tags || [])
-      .map((t) => `<span class="tag">${escape(t)}</span>`)
-      .join("");
-    document.getElementById("race-result").innerHTML = `
-      <h3>${escape(r.name)}</h3>
-      <p class="role">Race</p>
-      <p>${escape(r.summary)}</p>
-      <div class="tag-row">${tags}</div>
+
+  // ============================
+  // STORY SCENARIO
+  // ============================
+  document.getElementById("btn-story").addEventListener("click", () => {
+    const location = pick(DATA.locations);
+    const monster = pick(DATA.monsters);
+    let hook = pick(DATA.storyHooks);
+    hook = hook.replace("{location}", location.name).replace("{monster}", monster.name);
+    const complication = pick(DATA.storyComplications);
+    const tone = pick(DATA.storyTones);
+
+    const html = `
+      <div class="result-card">
+        <span class="card-label">Story Scenario</span>
+        <h3>${esc(location.name)}</h3>
+        <p class="card-subtitle">${esc(location.kind)} — ${esc(tone)}</p>
+        <div class="card-section">
+          <p class="card-section-title">Hook</p>
+          <div class="card-body"><p>${esc(hook)}</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Complication</p>
+          <div class="card-body"><p>${esc(cap(complication))}.</p></div>
+        </div>
+        <div class="card-section">
+          <p class="card-section-title">Tone</p>
+          <div class="card-body"><p>${esc(cap(tone))}.</p></div>
+        </div>
+        ${tagsHTML([location.kind, "Star-" + monster.star + " " + monster.name], "accent")}
+      </div>
     `;
-  }
-  document.getElementById("race-generate").addEventListener("click", showRace);
+    render(document.getElementById("result-story"), html);
+  });
 
-  // ----------------------------------------------------------- LOCATION
-  function showLocation() {
-    const name = selects.location.value;
-    const l = name
-      ? DATA.locations.find((x) => x.name === name)
-      : pick(DATA.locations);
-    document.getElementById("location-result").innerHTML = `
-      <h3>${escape(l.name)}</h3>
-      <p class="role">${escape(l.kind)}</p>
-      <p>${escape(l.summary)}</p>
-    `;
-  }
-  document.getElementById("location-generate").addEventListener("click", showLocation);
+  // ============================
+  // WORLD LORE
+  // ============================
+  document.getElementById("btn-world").addEventListener("click", () => {
+    const type = selWorldType.value;
+    let html;
 
-  // ----------------------------------------------------------- utils
-  function capitalise(s) {
-    if (!s) return s;
-    return s.charAt(0).toUpperCase() + s.slice(1);
-  }
+    if (type === "location") {
+      const loc = pick(DATA.locations);
+      html = `
+        <div class="result-card">
+          <span class="card-label">Location</span>
+          <h3>${esc(loc.name)}</h3>
+          <p class="card-subtitle">${esc(loc.kind)}</p>
+          <div class="card-body"><p>${esc(loc.summary)}</p></div>
+          ${tagsHTML([loc.kind], "teal")}
+        </div>
+      `;
+    } else if (type === "race") {
+      const race = pick(DATA.races);
+      html = `
+        <div class="result-card">
+          <span class="card-label">Race</span>
+          <h3>${esc(race.name)}</h3>
+          <p class="card-subtitle">Origin: ${esc(race.origin)} — Lifespan: ${esc(race.lifespan)}</p>
+          <div class="card-body">
+            <p><strong>Core type:</strong> ${esc(race.coreType)}</p>
+            <p><strong>Magic:</strong> ${esc(race.magicStyle)}</p>
+          </div>
+          ${tagsHTML(race.traits)}
+        </div>
+      `;
+    } else {
+      const facts = pickN(DATA.worldFacts, 3);
+      html = `
+        <div class="result-card">
+          <span class="card-label">World Facts</span>
+          <h3>Fragments of Aleria</h3>
+          <p class="card-subtitle">Things most people in this world take for granted</p>
+          <ul class="card-list">
+            ${facts.map(f => `<li>${esc(f)}</li>`).join("")}
+          </ul>
+          ${tagsHTML(["lore", "world-building"], "gold")}
+        </div>
+      `;
+    }
+
+    render(document.getElementById("result-world"), html);
+  });
+
 })();

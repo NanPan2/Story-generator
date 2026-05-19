@@ -1,207 +1,215 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Aleria - Fantasy Story Generator</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="site-header">
-      <div class="brand">
-        <div class="sun-mark" aria-hidden="true"></div>
-        <div class="brand-text">
-          <h1>Aleria</h1>
-          <p class="tagline">A fantasy generator bound to a single world.</p>
-        </div>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Aleria Fantasy World Generator — create characters, magic systems, monsters, relics, and story scenarios from a single cohesive fantasy world." />
+  <title>Aleria — World Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Ambient background particles -->
+  <div class="bg-particles" aria-hidden="true">
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+    <div class="particle p4"></div>
+    <div class="particle p5"></div>
+    <div class="particle p6"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-emblem" aria-hidden="true">
+        <div class="emblem-ring ring-outer"></div>
+        <div class="emblem-ring ring-inner"></div>
+        <div class="emblem-core"></div>
       </div>
-      <p class="motto">Knowledge is power, and power is survival.</p>
-    </header>
+      <h1 class="hero-title">Aleria</h1>
+      <p class="hero-subtitle">World Generator</p>
+      <p class="hero-tagline">Create characters, magic, monsters, and stories from a single cohesive fantasy world.</p>
+    </div>
+    <div class="hero-fade" aria-hidden="true"></div>
+  </header>
 
-    <nav class="tabs" role="tablist" aria-label="Generators">
-      <button class="tab" role="tab" data-tab="story" aria-selected="true">Story</button>
-      <button class="tab" role="tab" data-tab="character">Character</button>
-      <button class="tab" role="tab" data-tab="skill">Skill</button>
-      <button class="tab" role="tab" data-tab="spell">Spell</button>
-      <button class="tab" role="tab" data-tab="monster">Monster</button>
-      <button class="tab" role="tab" data-tab="relic">Relic</button>
-      <button class="tab" role="tab" data-tab="race">Race</button>
-      <button class="tab" role="tab" data-tab="location">Location</button>
-    </nav>
+  <!-- Navigation -->
+  <nav class="nav" role="navigation" aria-label="Generator sections">
+    <div class="nav-inner">
+      <button class="nav-btn active" data-section="character" aria-pressed="true">
+        <span class="nav-icon">&#9670;</span>
+        <span class="nav-label">Character</span>
+      </button>
+      <button class="nav-btn" data-section="magic" aria-pressed="false">
+        <span class="nav-icon">&#10038;</span>
+        <span class="nav-label">Magic</span>
+      </button>
+      <button class="nav-btn" data-section="monster" aria-pressed="false">
+        <span class="nav-icon">&#9760;</span>
+        <span class="nav-label">Monster</span>
+      </button>
+      <button class="nav-btn" data-section="relic" aria-pressed="false">
+        <span class="nav-icon">&#9883;</span>
+        <span class="nav-label">Relic</span>
+      </button>
+      <button class="nav-btn" data-section="story" aria-pressed="false">
+        <span class="nav-icon">&#9998;</span>
+        <span class="nav-label">Story</span>
+      </button>
+      <button class="nav-btn" data-section="world" aria-pressed="false">
+        <span class="nav-icon">&#9672;</span>
+        <span class="nav-label">World</span>
+      </button>
+    </div>
+  </nav>
 
-    <main>
-      <!-- Story -->
-      <section class="panel" data-panel="story" hidden="false">
-        <div class="panel-header">
-          <h2>Story scenario</h2>
-          <p>
-            Generates a scene featuring the canonical cast - Erdan, Mira, Night, Nare, Seraya, Rei,
-            Ren-Ro, the Pope, the Grand Priests, and the Iron Queen - in places and conflicts the
-            world bible already supports.
-          </p>
-        </div>
-        <div class="controls">
-          <label class="select">
-            <span>Lead character</span>
-            <select id="story-lead">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <label class="select">
-            <span>Companion</span>
-            <select id="story-ally">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="story-generate">Generate scenario</button>
-        </div>
-        <article class="result" id="story-result" aria-live="polite"></article>
-      </section>
+  <!-- Main content -->
+  <main class="main">
 
-      <!-- Character -->
-      <section class="panel" data-panel="character" hidden>
-        <div class="panel-header">
-          <h2>Character profile</h2>
-          <p>Pulls one of the named cast and shows the canonical profile from the lore.</p>
+    <!-- CHARACTER -->
+    <section class="section active" id="sec-character" aria-label="Character Generator">
+      <div class="section-header">
+        <h2>Character Generator</h2>
+        <p>Build a character grounded in Aleria's races, occupations, and world tensions. Every result draws from the world's lore.</p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="char-race">Race</label>
+          <select id="char-race"><option value="">Random</option></select>
         </div>
-        <div class="controls">
-          <label class="select">
-            <span>Character</span>
-            <select id="char-select">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="char-generate">Show profile</button>
+        <div class="control-group">
+          <label for="char-occupation">Occupation</label>
+          <select id="char-occupation"><option value="">Random</option></select>
         </div>
-        <article class="result" id="char-result" aria-live="polite"></article>
-      </section>
+        <button class="generate-btn" id="btn-character">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Generate Character</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-character" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Skill -->
-      <section class="panel" data-panel="skill" hidden>
-        <div class="panel-header">
-          <h2>Skill</h2>
-          <p>
-            Skills cannot be taught. They are unlocked through specific, often obscure life
-            conditions. Grades run Budding, Low, Neutral, Medium, High, Grand, Master, Null.
-          </p>
+    <!-- MAGIC -->
+    <section class="section" id="sec-magic" aria-label="Magic System Generator">
+      <div class="section-header">
+        <h2>Magic System</h2>
+        <p>Generate Spells (with full Tro-Ko incantation), Skills (with Grades and obscure unlock conditions), Techniques, and Pact bindings.</p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="magic-type">Type</label>
+          <select id="magic-type">
+            <option value="">Random</option>
+            <option value="spell">Spell</option>
+            <option value="skill">Skill</option>
+            <option value="technique">Technique</option>
+            <option value="pact">Pact</option>
+          </select>
         </div>
-        <div class="controls">
-          <label class="select">
-            <span>Grade</span>
-            <select id="skill-grade">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="skill-generate">Generate Skill</button>
+        <div class="control-group">
+          <label for="magic-grade">Grade (Skills only)</label>
+          <select id="magic-grade"><option value="">Random</option></select>
         </div>
-        <article class="result" id="skill-result" aria-live="polite"></article>
-      </section>
+        <button class="generate-btn" id="btn-magic">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Generate Magic</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-magic" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Spell -->
-      <section class="panel" data-panel="spell" hidden>
-        <div class="panel-header">
-          <h2>Spell</h2>
-          <p>
-            Full incantation: <em>Trovak enshari korim thalos</em> + suffix. Skilled casters
-            compress this to the high-risk Tro-Ko form. Elemental spells imitate reality through
-            mana - they are not the real thing.
-          </p>
+    <!-- MONSTER -->
+    <section class="section" id="sec-monster" aria-label="Monster Encounter Generator">
+      <div class="section-header">
+        <h2>Monster Encounter</h2>
+        <p>Star-1 (one person) to Star-7 (historical calamity). Each comes with habitat, behaviour, and a tactical hook.</p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="monster-star">Star Rating</label>
+          <select id="monster-star">
+            <option value="">Random</option>
+            <option value="1">Star-1</option>
+            <option value="2">Star-2</option>
+            <option value="3">Star-3</option>
+            <option value="4">Star-4</option>
+            <option value="5">Star-5</option>
+          </select>
         </div>
-        <div class="controls">
-          <label class="select">
-            <span>Type</span>
-            <select id="spell-type">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="spell-generate">Generate spell</button>
-        </div>
-        <article class="result" id="spell-result" aria-live="polite"></article>
-      </section>
+        <button class="generate-btn" id="btn-monster">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Generate Encounter</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-monster" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Monster -->
-      <section class="panel" data-panel="monster" hidden>
-        <div class="panel-header">
-          <h2>Monster encounter</h2>
-          <p>Star-rankings: 1 (one person) up to 7 (historical calamity). Only canonical monsters appear here.</p>
-        </div>
-        <div class="controls">
-          <label class="select">
-            <span>Star rating</span>
-            <select id="monster-star">
-              <option value="">Random</option>
-              <option value="1">Star-1</option>
-              <option value="2">Star-2</option>
-              <option value="3">Star-3</option>
-              <option value="4">Star-4</option>
-              <option value="5">Star-5</option>
-            </select>
-          </label>
-          <button class="btn primary" id="monster-generate">Generate encounter</button>
-        </div>
-        <article class="result" id="monster-result" aria-live="polite"></article>
-      </section>
+    <!-- RELIC -->
+    <section class="section" id="sec-relic" aria-label="Relic Generator">
+      <div class="section-header">
+        <h2>Relic</h2>
+        <p>Lost Magic artifacts left by the Ancients. Found in deep dungeons, sealed ruins, or places they should not be. Effects are powerful and always limited.</p>
+      </div>
+      <div class="controls">
+        <button class="generate-btn" id="btn-relic">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Generate Relic</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-relic" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Relic -->
-      <section class="panel" data-panel="relic" hidden>
-        <div class="panel-header">
-          <h2>Relic</h2>
-          <p>
-            Lost Magic items left by the Ancients in deep dungeons. Effects are random and powerful;
-            their limits are part of the find.
-          </p>
-        </div>
-        <div class="controls">
-          <button class="btn primary" id="relic-generate">Generate relic</button>
-        </div>
-        <article class="result" id="relic-result" aria-live="polite"></article>
-      </section>
+    <!-- STORY -->
+    <section class="section" id="sec-story" aria-label="Story Scenario Generator">
+      <div class="section-header">
+        <h2>Story Scenario</h2>
+        <p>A story hook, a complication, and a tone — enough to seed a chapter, a campaign session, or a writing prompt.</p>
+      </div>
+      <div class="controls">
+        <button class="generate-btn" id="btn-story">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Generate Scenario</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-story" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Race -->
-      <section class="panel" data-panel="race" hidden>
-        <div class="panel-header">
-          <h2>Race</h2>
-          <p>Canonical races and Devil subtypes from the world bible.</p>
+    <!-- WORLD -->
+    <section class="section" id="sec-world" aria-label="World Lore">
+      <div class="section-header">
+        <h2>World Lore</h2>
+        <p>Locations, races, and facts about Aleria. Browse or randomise.</p>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="world-type">Show</label>
+          <select id="world-type">
+            <option value="location">Location</option>
+            <option value="race">Race</option>
+            <option value="fact">World Fact</option>
+          </select>
         </div>
-        <div class="controls">
-          <label class="select">
-            <span>Race</span>
-            <select id="race-select">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="race-generate">Show race</button>
-        </div>
-        <article class="result" id="race-result" aria-live="polite"></article>
-      </section>
+        <button class="generate-btn" id="btn-world">
+          <span class="btn-glow"></span>
+          <span class="btn-text">Reveal</span>
+        </button>
+      </div>
+      <div class="result-area" id="result-world" aria-live="polite" aria-atomic="true"></div>
+    </section>
 
-      <!-- Location -->
-      <section class="panel" data-panel="location" hidden>
-        <div class="panel-header">
-          <h2>Location</h2>
-          <p>Canonical places: continents, the Underworld, dungeons, and key civic sites.</p>
-        </div>
-        <div class="controls">
-          <label class="select">
-            <span>Location</span>
-            <select id="location-select">
-              <option value="">Random</option>
-            </select>
-          </label>
-          <button class="btn primary" id="location-generate">Show location</button>
-        </div>
-        <article class="result" id="location-result" aria-live="polite"></article>
-      </section>
-    </main>
+  </main>
 
-    <footer class="site-footer">
-      <p>
-        Bound to the Aleria world bible. No characters, races, or systems outside that bible are
-        used here.
-      </p>
-    </footer>
+  <!-- Footer -->
+  <footer class="footer">
+    <p>All content drawn from the Aleria world bible. No external lore, no AI generation at runtime.</p>
+    <p class="footer-sub">Built as a static site. No tracking, no cookies, no accounts.</p>
+  </footer>
 
-    <script src="data.js"></script>
-    <script src="app.js"></script>
-  </body>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
 </html>
